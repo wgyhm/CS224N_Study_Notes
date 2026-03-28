@@ -88,3 +88,7 @@
 `hidden_dim`，控制隐藏层有多宽，也就是模型中间表示的维度大小
 
 `freeze_embeddings`控制的是，也就是词向量参数是否更新
+
+### Lecture 5&6
+
+bidirectional RNNs：单向 RNN 适合“按时间往前生成”；双向 RNN 适合“在整句已知时理解当前位置”.
