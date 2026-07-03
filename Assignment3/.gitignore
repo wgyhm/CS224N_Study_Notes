@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+model.bin
+model.bin.optim
+outputs/
+runs/
+*.events.*

@@ -20,6 +20,7 @@ import torch.nn.functional as F
 import nltk
 import sentencepiece as spm
 nltk.download('punkt')
+nltk.download('punkt_tab')
 
 
 def pad_sents(sents, pad_token):
@@ -36,7 +37,13 @@ def pad_sents(sents, pad_token):
 
     ### YOUR CODE HERE (~6 Lines)
 
-
+    maxlen=0
+    for sentence in sents:
+        maxlen = max(maxlen, len(sentence))
+    for i,sentence in enumerate(sents):
+        sents_padded.append(sentence)
+        for j in range(len(sentence),maxlen):
+            sents_padded[i].append(pad_token)
 
     ### END YOUR CODE
 
@@ -104,5 +111,4 @@ def batch_iter(data, batch_size, shuffle=False):
         tgt_sents = [e[1] for e in examples]
 
         yield src_sents, tgt_sents
-
 
