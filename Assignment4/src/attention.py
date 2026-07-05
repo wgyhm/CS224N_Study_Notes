@@ -24,7 +24,7 @@ def precompute_rotary_emb(dim, max_positions):
 
     cos(t theta_i) and sin(t theta_i)
         where t is the position and
-              theta_i = 1/10000^(-2(i-1)/dim) for i in [1, dim/2]
+              theta_i = 10000^(-2(i-1)/dim) for i in [1, dim/2]
 
     Since the maximum length of sequences is known, we can precompute
     these values to speed up training.
@@ -38,7 +38,11 @@ def precompute_rotary_emb(dim, max_positions):
     rope_cache = None
     # TODO: [part g]
     ### YOUR CODE HERE ###
-    pass
+    positions = torch.arange(max_positions).float().unsqueeze(1)
+    dim_indices = torch.arange(0, dim, 2).float().unsqueeze(0)
+    theta = 10000 ** (-dim_indices / dim)
+    angles = positions * theta
+    rope_cache = torch.stack((torch.cos(angles), torch.sin(angles)), dim=-1)
     ### END YOUR CODE ###
     return rope_cache
 
@@ -58,7 +62,15 @@ def apply_rotary_emb(x, rope_cache):
 
     rotated_x = None
     ### YOUR CODE HERE ###
-    pass
+    # T = x.size(-2)
+    # x_complex = torch.view_as_complex(x.reshape(*x.shape[:-1], -1, 2))
+    # rope_cache_complex = torch.view_as_complex(rope_cache[:T])
+    # rotated_x = torch.view_as_real(x_complex * rope_cache_complex).flatten(start_dim=-2)
+
+    rotated_x = torch.view_as_complex(x.view(*x.shape[:-1], -1, 2))
+    rotated_x = rotated_x * torch.view_as_complex(rope_cache[:x.shape[2], :])
+    rotated_x = torch.view_as_real(rotated_x).contiguous().view(*x.shape[:-1], -1)
+    
     ### END YOUR CODE ###
     return rotated_x
 
@@ -86,7 +98,9 @@ class CausalSelfAttention(nn.Module):
             # Hint: The maximum sequence length is given by config.block_size.
             rope_cache = None
             ### YOUR CODE HERE ###
-            pass
+            rope_cache = precompute_rotary_emb(
+                dim=config.n_embd // config.n_head,
+                max_positions=config.block_size)
             ### END YOUR CODE ###
 
             self.register_buffer("rope_cache", rope_cache)
@@ -112,7 +126,8 @@ class CausalSelfAttention(nn.Module):
         if self.rope:
             # TODO: [part g] Apply RoPE to the query and key.
             ### YOUR CODE HERE ###
-            pass
+            q = apply_rotary_emb(q, self.rope_cache)
+            k = apply_rotary_emb(k, self.rope_cache)
             ### END YOUR CODE ###
 
         # causal self-attention; Self-attend: (B, nh, T, hs) x (B, nh, hs, T) -> (B, nh, T, T)

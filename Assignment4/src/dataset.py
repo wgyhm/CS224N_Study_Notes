@@ -38,7 +38,7 @@ from torch.utils.data import Dataset
 #   In other words, choose three strings prefix, masked_content and suffix
 #     such that prefix + masked_content + suffix = [the truncated document].
 #   The length of [masked_content] should be random, and 1/4 the length of the
-#     truncated document on average.
+#     truncated document on average.+
 
 # - IMPORTANT: You are free to decide how to perform this operation, but
 # make sure that the length is picked _randomly_ (has a chance of being more or
@@ -101,7 +101,30 @@ class CharCorruptionDataset(Dataset):
     def __getitem__(self, idx):
         # TODO [part e]: see spec above
         ### YOUR CODE HERE ###
-        pass
+        document = self.data[idx]
+        max_truncated_length = min(len(document), self.block_size * 7 // 8)
+        truncated_length = random.randint(4, max_truncated_length)
+        truncated_document = document[:truncated_length]
+
+        masked_length = random.randint(1, max(1, truncated_length // 2))
+        masked_start = random.randint(1, truncated_length - masked_length)
+        prefix = truncated_document[:masked_start]
+        masked_content = truncated_document[
+            masked_start:masked_start + masked_length]
+        suffix = truncated_document[masked_start + masked_length:]
+
+        masked_string = (
+            prefix + self.MASK_CHAR + suffix + self.MASK_CHAR + masked_content + self.MASK_CHAR )
+        masked_string += self.PAD_CHAR * (
+            self.block_size + 1 - len(masked_string))
+
+        x = masked_string[:-1]
+        y = masked_string[1:]
+        x = torch.tensor([self.stoi[c] for c in x], dtype=torch.long)
+        y = torch.tensor([self.stoi[c] for c in y], dtype=torch.long)
+        assert len(x) == self.block_size
+        assert len(y) == self.block_size
+        return x, y
         ### END YOUR CODE ###
 
 
@@ -160,6 +183,7 @@ if __name__ == '__main__':
         corruption_dataset = CharCorruptionDataset(
             open('wiki.txt', encoding='utf-8').read(), 128)
         # Make the name dataset
+
         name_dataset = NameDataset(corruption_dataset,
             open('birth_places_train.tsv', encoding='utf-8').read())
         for _, example in zip(range(4), name_dataset):
